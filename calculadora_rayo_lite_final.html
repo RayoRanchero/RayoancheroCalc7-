@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚡ Rayo Ranchero &7 - &25-GOLife</title>
+  <style>
+    :root {
+      --clasica-fondo: #f0f0f0;
+      --clasica-botones: #e0e0e0;
+      --clasica-texto: #333;
+      --clasica-borde: #ccc;
+      --clasica-especial: #ff8c00;
+      --avanzada-fondo: #111;
+      --avanzada-botones: rgba(0,30,0,0.9);
+      --avanzada-texto: #0f0;
+      --avanzada-borde: #0f0;
+      --avanzada-especial: #8A2BE2;
+      --golife-alive: #0f0;
+      --golife-dead: transparent;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Courier New',monospace; background:var(--clasica-fondo); color:var(--clasica-texto); display:flex; justify-content:center; align-items:flex-start; padding:20px; transition:background .3s, color .3s; }
+    body.skin-avanzada { background:var(--avanzada-fondo); color:var(--avanzada-texto); text-shadow:0 0 8px var(--avanzada-texto); }
+    .container { background:white; border-radius:10px; padding:20px; box-shadow:0 0 15px rgba(0,0,0,.2); max-width:380px; width:100%; }
+    body.skin-avanzada .container { background:var(--avanzada-botones); border:2px solid var(--avanzada-borde); box-shadow:0 0 20px rgba(0,255,0,.3); }
+    h1.brand { text-align:center; margin-bottom:10px; font-size:1.5em; color:var(--clasica-especial); text-shadow:0 0 5px var(--clasica-especial); }
+    body.skin-avanzada h1.brand { color:var(--avanzada-especial); }
+    .display { width:100%; background:white; border:2px solid var(--clasica-borde); border-radius:5px; padding:15px; margin-bottom:15px; font-size:24px; text-align:right; overflow-x:auto; }
+    body.skin-avanzada .display { background:black; border-color:var(--avanzada-borde); color:var(--avanzada-texto); }
+    .buttons { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+    button { border:none; padding:12px; font-size:18px; border-radius:5px; cursor:pointer; background:var(--clasica-botones); color:var(--clasica-texto); transition:filter .2s, background .3s; }
+    button:hover { filter:brightness(.9); }
+    body.skin-avanzada button { background:var(--avanzada-botones); color:var(--avanzada-texto); border:1px solid var(--avanzada-borde); }
+    .boton-especial { background:var(--clasica-especial)!important; color:#fff!important; }
+    body.skin-avanzada .boton-especial { background:var(--avanzada-especial)!important; }
+    @keyframes neonBlink { 0%,100% { text-shadow:0 0 5px white; } 50% { text-shadow:0 0 20px var(--golife-alive);} }
+    .bigos-blink { animation:neonBlink 2s infinite; }
+    .modes { display:flex; justify-content:space-between; margin-top:15px; }
+    canvas#gof { display:block; margin:15px auto; background:#000; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="brand">Rayo Ranchero &7</h1>
+    <div class="display" id="display">0</div>
+    <div class="buttons">
+      <button onclick="action('C')">C</button>
+      <button onclick="action('←')">←</button>
+      <button onclick="action('%')">%</button>
+      <button id="btnPi" class="boton-especial" onclick="togglePi()">π</button>
+      <button id="btnBigos" class="boton-especial" onclick="toggleBigos()">🌀 BIGOS</button>
+      <button onclick="action('7')">7</button>
+      <button onclick="action('8')">8</button>
+      <button onclick="action('9')">9</button>
+      <button onclick="action('/')">÷</button>
+      <button onclick="action('4')">4</button>
+      <button onclick="action('5')">5</button>
+      <button onclick="action('6')">6</button>
+      <button onclick="action('*')">×</button>
+      <button onclick="action('1')">1</button>
+      <button onclick="action('2')">2</button>
+      <button onclick="action('3')">3</button>
+      <button onclick="action('-')">-</button>
+      <button onclick="action('0')">0</button>
+      <button onclick="action('.')">.</button>
+      <button onclick="calc()">=</button>
+      <button onclick="action('+')">+</button>
+    </div>
+    <div class="buttons" id="advButtons" style="display:none; margin-top:10px;">
+      <button onclick="action('Math.sqrt(')">√</button>
+      <button onclick="action('^')">^</button>
+      <button onclick="action('Math.sin(')">sin</button>
+      <button onclick="action('Math.cos(')">cos</button>
+      <button onclick="action('Math.tan(')">tan</button>
+      <button onclick="action('(')">(</button>
+      <button onclick="action(')')">)</button>
+      <button onclick="action('Math.log(')">log</button>
+    </div>
+    <div class="modes">
+      <button class="boton-especial" onclick="toggleSkin()">🎨 Skin</button>
+      <button class="boton-especial" onclick="toggleAdvanced()">🔁 Adv</button>
+      <button class="boton-especial" onclick="toggleConscience()">🤖 Consciencia</button>
+    </div>
+    <canvas id="gof" width="200" height="200" style="display:none;"></canvas>
+  </div>
+  <script>
+    let advanced=false, skin=false, bigos=false, conscience=false;
+    let lastOpIsResult=false, bigosValue=0;
+    let piMode=false, piIndex=0,
+        piDigits = '3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679';
+    const disp=document.getElementById('display');
+    const btnBigos=document.getElementById('btnBigos');
+    const btnPi=document.getElementById('btnPi');
+    const canvasEl=document.getElementById('gof'), ctx=canvasEl.getContext('2d');
+    const cols=50, rows=50; let grid;
+
+    // Keyboard support (upper row, numpad, C for Pi)
+    document.addEventListener('keydown', e => {
+      if (piMode) {
+        if (e.key === '+') { piIndex = Math.min(piIndex+1, piDigits.length-16); updatePi(); }
+        else if (e.key === '-') { piIndex = Math.max(piIndex-1, 0); updatePi(); }
+        else if (e.key === 'ArrowLeft') { piIndex = 0; updatePi(); }
+        e.preventDefault();
+      } else {
+        let key = e.key;
+        // Numpad mapping
+        if (e.code.startsWith('Numpad')) {
+          switch(e.code) {
+            case 'Numpad0': key='0'; break;
+            case 'Numpad1': key='1'; break;
+            case 'Numpad2': key='2'; break;
+            case 'Numpad3': key='3'; break;
+            case 'Numpad4': key='4'; break;
+            case 'Numpad5': key='5'; break;
+            case 'Numpad6': key='6'; break;
+            case 'Numpad7': key='7'; break;
+            case 'Numpad8': key='8'; break;
+            case 'Numpad9': key='9'; break;
+            case 'NumpadAdd': key='+'; break;
+            case 'NumpadSubtract': key='-'; break;
+            case 'NumpadMultiply': key='*'; break;
+            case 'NumpadDivide': key='/'; break;
+            case 'NumpadDecimal': key='.'; break;
+            case 'NumpadEnter': key='Enter'; break;
+          }
+        }
+        if (/\d/.test(key) || ['+','-','*','/','.','(',')','%','^'].includes(key)) {
+          action(key);
+          e.preventDefault();
+        } else if (key==='Enter') { calc(); e.preventDefault(); }
+        else if (key==='Backspace') { action('←'); e.preventDefault(); }
+        else if (key==='Delete') { action('C'); e.preventDefault(); }
+        else if (key==='c' || key==='C') { togglePi(); e.preventDefault(); }
+      }
+    });
+
+    function initLife(){ grid=Array.from({length:rows},()=>Array(cols).fill(0)); for(let i=0;i<rows;i++) for(let j=0;j<cols;j++) grid[i][j]=Math.random()<.2?1:0; drawLife(); }
+    function stepLife(){ const next=grid.map(r=>r.slice()); for(let i=0;i<rows;i++) for(let j=0;j<cols;j++){ let n=[[ -1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]
+            .reduce((s,[dx,dy])=>s+(grid[(i+dx+rows)%rows][(j+dy+cols)%cols]||0),0);
+        if(grid[i][j]&&(n<2||n>3)) next[i][j]=0; if(!grid[i][j]&&n===3) next[i][j]=1; }
+      grid=next; drawLife(); }
+    function drawLife(){ const w=canvasEl.width/cols,h=canvasEl.height/rows; ctx.clearRect(0,0,canvasEl.width,canvasEl.height);
+      for(let i=0;i<rows;i++) for(let j=0;j<cols;j++){ ctx.fillStyle=grid[i][j]?getComputedStyle(document.body).getPropertyValue('--golife-alive'):getComputedStyle(document.body).getPropertyValue('--golife-dead'); ctx.fillRect(j*w,i*h,w,h);} }
+
+    function action(v){ if(piMode) return; lastOpIsResult=false; if(v==='C'){ disp.innerText='0'; return;} if(v==='←'){ disp.innerText=disp.innerText.slice(0,-1)||'0'; return;} disp.innerText = disp.innerText==='0'? v : disp.innerText+v; }
+    function calc(){ if(piMode) return; try{ let expr=disp.innerText.replace(/(\d+(?:\.\d+)?)\^(\d+(?:\.\d+)?)/g,'Math.pow($1,$2)'); let res=eval(expr); let out; if(bigos){ if(!lastOpIsResult) bigosValue=res+25; else bigosValue+=1; out=bigosValue; btnBigos.classList.add('bigos-blink'); btnBigos.style.background=getComputedStyle(document.body).getPropertyValue('--golife-alive'); } else { out=(typeof res==='number'&&!isNaN(res))? parseFloat(res.toPrecision(20).replace(/\.0+$|(?<=\.[0-9]*[1-9])0+$/g,'')) : 'Error'; } disp.innerText=out; lastOpIsResult=true; if(conscience) stepLife(); } catch{ disp.innerText='Error'; }}
+    function togglePi(){ piMode=!piMode; if(piMode){ piIndex=0; updatePi(); disp.style.fontFamily='monospace'; } else { disp.innerText='0'; disp.style.fontFamily='Courier New'; }}
+    function updatePi(){ disp.innerText = piDigits.substr(piIndex,16); }
+    function toggleAdvanced(){ advanced=!advanced; document.getElementById('advButtons').style.display=advanced?'grid':'none'; }
+    function toggleSkin(){ skin=!skin; document.body.classList.toggle('skin-avanzada',skin); }
+    function toggleBigos(){ bigos=!bigos; lastOpIsResult=false; if(!bigos){ btnBigos.classList.remove('bigos-blink'); btnBigos.style.background=''; } alert(bigos?'Modo BIGOS ON':'Modo BIGOS OFF'); }
+    function toggleConscience(){ conscience=!conscience; if(conscience){ canvasEl.style.display='block'; initLife(); } else canvasEl.style.display='none'; }
+  </script>
+</body>
+</html>
